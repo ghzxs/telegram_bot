@@ -106,7 +106,7 @@ application.add_handler(CallbackQueryHandler(button))
 application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_to_user))
 
 # ==================== Flask webhook 路由 ====================
-@app.route(f"/{TOKEN}", methods=["GET", "POST"])
+@app.route(f"/", methods=["GET", "POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
