@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: telegram-proxy-bot
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn proxy_chat_bot:app
+    envVars:
+      TOKEN: 
+        description: 你的 Bot Token
+      ADMIN_ID:
+        description: 你的 Telegram ID（数字）
