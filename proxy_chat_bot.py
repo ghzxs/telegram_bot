@@ -114,10 +114,19 @@ def webhook():
     return "ok", 200
 
 # Render 第一次部署时自动设置 webhook
-if os.environ.get("RENDER"):
-    webhook_url = f"https://{os.environ['RENDER_INSTANCE_NAME']}.onrender.com/{TOKEN}"
-    application.bot.set_webhook(url=webhook_url)
-    print(f"Webhook 已设置：{webhook_url}")
+if os.environ.get("RENDER") == "true":                     # Render 新规范
+    # Render 现在用 RENDER_EXTERNAL_HOSTNAME 或直接从请求头取
+    domain = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    if not domain:
+        # 极少数情况下还没准备好，跳过自动设置（后面手动一次就行）
+        print("RENDER_EXTERNAL_HOSTNAME 未就绪，跳过自动 setWebhook")
+    else:
+        webhook_url = f"https://{domain}/{TOKEN}"
+        try:
+            application.bot.set_webhook(url=webhook_url)
+            print(f"Webhook 自动设置成功：{webhook_url}")
+        except Exception as e:
+            print(f"Webhook 设置失败（首次部署正常）：{e}")
 
 # Gunicorn 入口
 if __name__ == "__main__":
