@@ -106,12 +106,16 @@ application.add_handler(CallbackQueryHandler(button))
 application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_to_user))
 
 # ==================== Flask webhook 路由 ====================
-@app.route(f"/", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def webhook():
     if request.method == "POST":
         update = Update.de_json(request.get_json(force=True), application.bot)
-        application.process_update(update)
-    return "ok", 200
+        if update:
+            application.process_update(update)
+        return "ok", 200
+    else:
+        # GET 请求直接返回 200，防止 Telegram 认为 404
+        return "Telegram Proxy Bot is running!", 200
 
 # Render 第一次部署时自动设置 webhook
 if os.environ.get("RENDER") == "true":                     # Render 新规范
