@@ -14,16 +14,16 @@ from telegram.ext import (
 )
 from flask import Flask, request
 
-# ================== 自动从 Render 环境变量读取 ==================
+# ================== 自动从环境变量读取（关键改动1）==================
 TOKEN = os.getenv("TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID"))
-# ============================================================
+# ADMIN_ID 不要在这里转 int！后面用到时再转，否则 Render 启动会报错
+# ADMIN_ID = int(os.getenv("ADMIN_ID"))   ← 删除这行
+# =====================================================================
 
-# Flask + Gunicorn 用于 Render webhook
 app = Flask(__name__)
 application = Application.builder().token(TOKEN).build()
 
-# 数据库（Render 免费层直接用本地 SQLite，足够）
+# 数据库
 db = sqlite3.connect("users.db", check_same_thread=False)
 cur = db.cursor()
 cur.execute("CREATE TABLE IF NOT EXISTS passed (user_id INTEGER PRIMARY KEY)")
@@ -77,12 +77,15 @@ async def forward_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
     user_id = msg.from_user.id
 
-    # 管理员（你）发的 → 转发给最近联系的用户
+    # 关键改动2：每次用的时候才转 int，绝对不会报错
+    ADMIN_ID = int(os.getenv("ADMIN_ID"))
+
+    # 你（管理员）发消息 → 转发给最近联系的人
     if user_id == ADMIN_ID:
         last = context.bot_data.get("last_user")
         if last:
             await msg.forward(chat_id=last)
-            await msg.reply_text(f"已转发给 {last}")
+            await msg.reply_text(f"已转发给用户 {last}")
         else:
             await msg.reply_text("暂时没人找你～")
         return
@@ -100,12 +103,12 @@ async def forward_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await msg.forward(chat_id=ADMIN_ID)      # 纯转发
     await msg.reply_text("消息已收到，我会尽快回复～")
 
-# ==================== 注册所有处理器 ====================
+# ==================== 注册处理器 ====================
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CallbackQueryHandler(button))
 application.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, forward_to_user))
 
-# ==================== Flask webhook 路由 ====================
+# ==================== Flask webhook（根路径） ====================
 @app.route("/", methods=["GET", "POST"])
 def webhook():
     if request.method == "POST":
@@ -113,26 +116,20 @@ def webhook():
         if update:
             application.process_update(update)
         return "ok", 200
-    else:
-        # GET 请求直接返回 200，防止 Telegram 认为 404
-        return "Telegram Proxy Bot is running!", 200
+    return "Bot is alive!", 200
 
-# Render 第一次部署时自动设置 webhook
-if os.environ.get("RENDER") == "true":                     # Render 新规范
-    # Render 现在用 RENDER_EXTERNAL_HOSTNAME 或直接从请求头取
+# ==================== Render 启动后自动设置 webhook ====================
+if os.environ.get("RENDER") == "true":
     domain = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-    if not domain:
-        # 极少数情况下还没准备好，跳过自动设置（后面手动一次就行）
-        print("RENDER_EXTERNAL_HOSTNAME 未就绪，跳过自动 setWebhook")
-    else:
-        webhook_url = f"https://{domain}/{TOKEN}"
+    if domain:
+        url = f"https://{domain}/"
         try:
-            application.bot.set_webhook(url=webhook_url)
-            print(f"Webhook 自动设置成功：{webhook_url}")
+            application.bot.set_webhook(url=url)
+            print(f"Webhook 设置成功 → {url}")
         except Exception as e:
-            print(f"Webhook 设置失败（首次部署正常）：{e}")
+            print(f"Webhook 设置失败（首次正常）：{e}")
 
-# Gunicorn 入口
+# ==================== Gunicorn 入口 ====================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
