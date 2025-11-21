@@ -3,7 +3,6 @@ import random
 import sqlite3
 from datetime import datetime, timedelta
 import os
-import logging
 import pathlib
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -122,10 +121,6 @@ async def forward_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 正常转发给你（管理员）
     context.bot_data["last_user"] = user_id
     await msg.forward(chat_id=ADMIN_ID)          # ← 重点：纯转发
-
-# 简单日志，部署时便于排查
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 def main():
     app = Application.builder().token(TOKEN).build()
