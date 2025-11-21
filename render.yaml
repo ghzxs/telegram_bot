@@ -1,13 +1,15 @@
 services:
-  - type: web
+  - type: worker
     name: telegram-proxy-bot
     env: python
-    region: oregon
+    region: Singapore
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn proxy_chat_bot:app
+    startCommand: python3 proxy_chat_bot.py
     envVars:
-      TOKEN: 
-        description: 你的 Bot Token
-      ADMIN_ID:
-        description: 你的 Telegram ID（数字）
+      - key: TG_BOT_TOKEN
+        value: ""
+        # description: 你的 Bot Token，部署时在 Render 控制台填写（不要把 token 写入源码）
+      - key: TG_ADMIN_ID
+        value: ""
+        # description: 你的 Telegram ID（数字），部署时在 Render 控制台填写
