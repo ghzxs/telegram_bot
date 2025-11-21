@@ -59,7 +59,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     a, b, ans, q = gen_captcha()
-    opts = [ans-7, ans, ans+11]答案错误
+    opts = [ans-7, ans, ans+11]
     random.shuffle(opts)
     keyboard = [[InlineKeyboardButton(str(x), callback_data=f"c_{x}_{user_id}") for x in opts]]
     await update.message.reply_text(

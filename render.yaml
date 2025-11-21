@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web_services
     name: telegram-proxy-bot
     env: python
     region: Singapore
